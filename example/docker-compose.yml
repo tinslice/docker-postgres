@@ -1,0 +1,118 @@
+version: '3.7'
+
+volumes:
+  pg-data:
+    # driver_opts:
+    #   type: none
+    #   device: $PWD/${LOCAL_DATA}/postgresql/data
+    #   o: bind
+
+services:
+  pg:
+    image: tinslice/postgres:11
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    shm_size: 256MB # increase this in case of 'ERROR: could not resize shared memory segment . . . : No space left on device'
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./config/conf.d:/etc/postgresql/11/main/conf.d
+      - ./config/scripts:/etc/postgresql/scripts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cat", "/var/lib/postgresql/data/container_ready"]
+      timeout: 10s
+      retries: 20
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_ROLES: '[
+        {
+          "name": "role_ts_admin",
+          "privileges": "NOINHERIT"
+        },
+        {
+          "name": "role_ts_write",
+          "privileges": "INHERIT"
+        },
+        {
+          "name": "role_ts_read"
+        }
+      ]'
+      POSTGRES_USERS: '[
+        {
+          "name": "ts_admin",
+          "password": "changeit",
+          "roles": ["role_ts_admin"]
+        },
+        {
+          "name": "ts_owner",
+          "password": "changeit"
+        },
+        {
+          "name": "ts_read",
+          "password": "changeit_read_only",
+          "roles": ["role_ts_read"]
+        },
+        {
+          "name": "ts_test_user",
+          "password": "changeit"
+        }        
+      ]'
+      POSTGRES_DB: '{
+        "ts_demo": {
+          "roles": [
+            {
+              "name": "ts_owner",
+              "owner": "true"
+            },
+            {
+              "name": "ts_test_user",
+              "privileges": "ALL"
+            },
+            {
+              "name": "role_ts_admin",
+              "schemas": [
+                { "name": "public", "privileges": "ALL" }
+              ]
+            },
+            {
+              "name": "role_ts_write",
+              "schemas": [
+                { "name": "public", "privileges": "SELECT,INSERT,UPDATE,DELETE,EXECUTE" }
+              ]
+            },
+            {
+              "name": "role_ts_read",
+              "schemas": [
+                {
+                  "name": "public",
+                  "tables": [
+                    { "name": "*", "privileges": "SELECT" }
+                  ],
+                  "sequences": [
+                    { "name": "*", "privileges": "SELECT" }
+                  ],
+                  "functions": [
+                    { "name": "*", "privileges": "EXECUTE" }
+                  ]
+                }
+              ]
+            }
+          ],
+          "init": ["init_db"]
+        }
+      }'
+      # run sql files on postgres start
+      POSTGRES_RUN_SCRIPTS: '{
+        "ts_demo": [ "ts_owner:run_at_start" ]
+      }'
+      # run sql scripts on postgres start
+      POSTGRES_RUN_SQL: '{
+        "postgres": [
+
+        ],
+        "ts_demo": [
+          "delete from public._marker_test;",
+          "insert into public._marker_test values(''ts_demo'');"
+        ]
+      }'
