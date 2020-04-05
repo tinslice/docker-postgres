@@ -2,7 +2,7 @@
 
 [![Docker Automated build](https://img.shields.io/docker/cloud/automated/tinslice/postgres.svg?style=flat)](https://hub.docker.com/r/tinslice/postgres/builds)
 [![Docker Build Status](https://img.shields.io/docker/cloud/build/tinslice/postgres.svg?style=flat)](https://hub.docker.com/r/tinslice/postgres/builds)
-<!-- [![Docker Pulls](https://img.shields.io/docker/pulls/tinslice/postgres.svg?style=flat)](https://hub.docker.com/r/tinslice/postgres/) -->
+[![Docker Pulls](https://img.shields.io/docker/pulls/tinslice/postgres.svg?style=flat)](https://hub.docker.com/r/tinslice/postgres/)
 [![license](https://img.shields.io/github/license/tinslice/docker-postgres.svg)](https://github.com/tinslice/docker-postgres)
 
 Postgresql docker image with database configuration based on environment variables.
