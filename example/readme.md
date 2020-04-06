@@ -17,5 +17,5 @@ config
 
 To start the Postgres server run `docker-compose up` (or `docker-compose up -d` to run in detach mode).
 
-TO stop the server run `docker-compose down`.
+To stop the server run `docker-compose down`.
 
