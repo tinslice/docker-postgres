@@ -9,7 +9,7 @@ volumes:
 
 services:
   pg:
-    image: tinslice/postgres:11
+    image: tinslice/postgres:12-ubuntu-18.04
     container_name: postgres
     ports:
       - "5432:5432"

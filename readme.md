@@ -19,6 +19,7 @@ To overwrite the Postgres default configuration you need to mount the folder con
 
 ### Environment variables
 
+- `PGDATA` overrides the default ('/var/lib/postgresql/data') data directory
 - `POSTGRES_PASSWORD` set the password for the postgresql user
 - `POSTGRES_ROLES` postgres group roles. Example config:
 
