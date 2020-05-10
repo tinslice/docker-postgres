@@ -5,6 +5,10 @@ export PATH=/usr/lib/postgresql/${PG_VERSION}/bin:$PATH
 
 PG_CONFIG="/etc/postgresql/${PG_VERSION}/main/postgresql.conf"
 PG_DATA_PATH="/var/lib/postgresql/data"
+if [ -n "$PGDATA" ]; then
+  PG_DATA_PATH="$PGDATA"
+fi
+
 PG_SQL_SCRIPTS_PATH="/etc/postgresql/scripts"
 
 rm -rf $PG_DATA_PATH/container_ready
