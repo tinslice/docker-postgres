@@ -244,8 +244,18 @@ if [ -n "$POSTGRES_USERS" ]; then
       db_role_password='changeit';
     fi
 
+    db_role_privileges=`_jq_object "$db_role" '.privileges'`
+    local granted_privileges=''
+    if [ -n "$db_role_privileges" ]; then
+      local privileges_array=`echo -n $db_role_privileges | jq -r .[]`
+      local granted_privilege=''
+      for granted_privilege in $privileges_array; do
+        granted_privileges="$granted_privileges $granted_privilege"
+      done
+    fi
+
     db_role_roles=`_jq_object "$db_role" '.roles'`
-    _pg_role_update "$db_role_name" "inherit login password '$db_role_password'" "$db_role_roles"
+    _pg_role_update "$db_role_name" "inherit login password '$db_role_password' $granted_privileges" "$db_role_roles"
   done
 fi
 
