@@ -245,10 +245,10 @@ if [ -n "$POSTGRES_USERS" ]; then
     fi
 
     db_role_privileges=`_jq_object "$db_role" '.privileges'`
-    local granted_privileges=''
+    granted_privileges=''
     if [ -n "$db_role_privileges" ]; then
-      local privileges_array=`echo -n $db_role_privileges | jq -r .[]`
-      local granted_privilege=''
+      privileges_array=`echo -n $db_role_privileges | jq -r .[]`
+      granted_privilege=''
       for granted_privilege in $privileges_array; do
         granted_privileges="$granted_privileges $granted_privilege"
       done
