@@ -76,17 +76,17 @@ _pg_database_owner() {
 
     local db_table=''
     for db_table in `psql -d $db_name -qAt -c "SELECT tablename FROM pg_tables WHERE schemaname = '$db_schema';"` ; do  
-      psql -d $db_name -c "ALTER TABLE \"$db_table\" OWNER TO $db_role;"
+      psql -d $db_name -c "ALTER TABLE $db_schema.\"$db_table\" OWNER TO $db_role;"
     done
 
     local db_sequence=''
     for db_sequence in `psql -d $db_name -qAt -c "SELECT sequence_name FROM information_schema.sequences where sequence_schema = '$db_schema';"` ; do  
-      psql -d $db_name -c "alter sequence \"$db_sequence\" owner to $db_role;" 
+      psql -d $db_name -c "alter sequence $db_schema.\"$db_sequence\" owner to $db_role;" 
     done
 
     local db_view=''
     for db_view in `psql -d $db_name -qAt -c "SELECT table_name FROM information_schema.views where table_schema = '$db_schema';"` ; do  
-      psql -d $db_name -c "alter view \"$db_view\" owner to $db_role;" 
+      psql -d $db_name -c "alter view $db_schema.\"$db_view\" owner to $db_role;" 
     done
   done
 }
