@@ -10,6 +10,7 @@ ENV PG_VERSION="12"
 
 RUN apt-get update && \
     apt-get -y install \
+            locales \
             wget \
             ca-certificates \
             gnupg2 \
@@ -27,14 +28,16 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
             pgbackrest && \
     apt-get -y purge wget lsb-release && apt-get -y autoremove
 
-RUN mkdir -p /var/lib/postgresql/data && \
-    chown postgres:postgres /var/lib/postgresql/data && \
-    echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf && \
-    echo "host replication  all    0.0.0.0/0  md5" >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf
-
 COPY fs/ /
 
-RUN chmod +x /scripts/*.sh
+RUN locale-gen && \
+    mkdir -p /var/lib/postgresql/data && \
+    chown postgres:postgres /var/lib/postgresql/data && \
+    echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf && \
+    echo "host replication  all    0.0.0.0/0  md5" >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf && \
+    chmod +x /scripts/*.sh
+
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 
 EXPOSE 5432
 

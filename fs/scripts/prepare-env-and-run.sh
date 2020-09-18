@@ -16,12 +16,12 @@ rm -rf $PG_DATA_PATH/postmaster.pid
 
 
 if [ -n "$PG_PORT" ]; then
-    echo "== set postgresql port to '$PG_PORT'"
-    sed -i "s/^port\\ =.*/port\\ =\\ $PG_PORT/g" $PG_CONFIG
+  echo "== set postgresql port to '$PG_PORT'"
+  sed -i "s/^port\\ =.*/port\\ =\\ $PG_PORT/g" $PG_CONFIG
 fi
 
 echo "== set default postgresql configuration"
-# echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf 
+# echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/${PG_VERSION}/main/pg_hba.conf
 sed -i "s|^local\\ *all\\ *all.*|local\\ all\\ all\\ trust|g" /etc/postgresql/${PG_VERSION}/main/pg_hba.conf
 sed -i "s|^[#]*listen_addresses\\ =.*|listen_addresses\\ =\\ '*'|g" $PG_CONFIG
 sed -i "s|^[#]*data_directory\\ =.*|data_directory\\ =\\ '${PG_DATA_PATH}'|g" $PG_CONFIG
@@ -31,22 +31,26 @@ sed -i "s|^[#]*shared_preload_libraries\\ =.*|shared_preload_libraries\\ =\\ '${
 
 export PG_FIRST_START=0
 
+if [ -z "$POSTGRES_ENCODING" ]; then
+  export POSTGRES_ENCODING="UTF8"
+fi
+
 if [ ! "`ls -A ${PG_DATA_PATH}`" ]; then
-    echo "== initialise postgres"
-    initdb -D $PG_DATA_PATH
-    export PG_FIRST_START=1
+  echo "== initialise postgres"
+  initdb -E $POSTGRES_ENCODING -D $PG_DATA_PATH
+  export PG_FIRST_START=1
 fi
 
 echo "== starting postgresql server"
 /usr/lib/postgresql/${PG_VERSION}/bin/postgres -D /var/lib/postgresql/${PG_VERSION}/main -c config_file=${PG_CONFIG} &
 
 while ! pg_isready  > /dev/null 2> /dev/null; do
-    echo ">> waiting for postgresql server to start"
-    sleep 1
+  echo ">> waiting for postgresql server to start"
+  sleep 1
 done
 
 if [ $PG_FIRST_START -eq 1 ]; then
-    mkdir -p $PG_SQL_SCRIPTS_PATH
+  mkdir -p $PG_SQL_SCRIPTS_PATH
 fi
 
 . ${PG_SCRIPTS_PATH}/configure-db.sh
@@ -59,4 +63,5 @@ fi
 
 touch $PG_DATA_PATH/container_ready
 echo "== container ready"
+
 while true; do sleep 10;done
