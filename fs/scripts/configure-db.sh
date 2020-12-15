@@ -13,10 +13,10 @@ _pg_role_update() {
 
   if [ -n "$role" ]; then
     if ! psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='${role}'" | grep -q 1; then
-      echo "== creating role '$role'"
+      _log "== creating role '$role'"
       psql --command "CREATE ROLE $role $privileges;"
     else
-      echo "== updating priviledges for role '$role'"
+      _log "== updating priviledges for role '$role'"
       psql --command "ALTER ROLE $role WITH $privileges;"
     fi
 
@@ -32,7 +32,7 @@ _pg_database_init() {
   local db_name=${1}
   local init_script=''
 
-  echo "== run init scripts for '$db_name'"
+  _log "== run init scripts for '$db_name'"
   for init_script in `echo -n $POSTGRES_DB | jq -r .${db_name}.init[]?`; do
     local ORIGIN_IFS=$IFS
     IFS=':' read -r -a script_parts <<< "$init_script"
@@ -42,12 +42,12 @@ _pg_database_init() {
       sql_file="${script_parts[0]}"
       sql_user=""
     fi
-    
+
     if [ ! ${sql_file: -4} == ".sql" ]; then
-        sql_file="${sql_file}.sql" 
+        sql_file="${sql_file}.sql"
     fi
-    
-    echo "== running script '$db_name:$sql_file'"
+
+    _log "== running script '$db_name:$sql_file'"
     if [ -n "$sql_user" ]; then
       psql -a -U $sql_user -d $db_name -f ${PG_SQL_SCRIPTS_PATH}/${sql_file}
     else
@@ -63,10 +63,10 @@ _pg_database_owner() {
   local db_db_role=${2}
   local db_schemas=${3}
 
-  echo "== changing owner for database '$db_name' to '$db_role'"
+  _log "== changing owner for database '$db_name' to '$db_role'"
   psql -d $db_name -c "ALTER DATABASE $db_name OWNER TO $db_role;"
   psql -d $db_name -c "GRANT ALL PRIVILEGES ON DATABASE $db_name TO $db_role;"
-  
+
   # psql --command "GRANT ALL ON ALL TABLES IN SCHEMA public TO $db_role;"
 
   local db_schema='';
@@ -75,18 +75,18 @@ _pg_database_owner() {
     _pg_database_schema_permissions "$db_name" "$db_role" "ALL" "$db_schema"
 
     local db_table=''
-    for db_table in `psql -d $db_name -qAt -c "SELECT tablename FROM pg_tables WHERE schemaname = '$db_schema';"` ; do  
+    for db_table in `psql -d $db_name -qAt -c "SELECT tablename FROM pg_tables WHERE schemaname = '$db_schema';"` ; do
       psql -d $db_name -c "ALTER TABLE $db_schema.\"$db_table\" OWNER TO $db_role;"
     done
 
     local db_sequence=''
-    for db_sequence in `psql -d $db_name -qAt -c "SELECT sequence_name FROM information_schema.sequences where sequence_schema = '$db_schema';"` ; do  
-      psql -d $db_name -c "alter sequence $db_schema.\"$db_sequence\" owner to $db_role;" 
+    for db_sequence in `psql -d $db_name -qAt -c "SELECT sequence_name FROM information_schema.sequences where sequence_schema = '$db_schema';"` ; do
+      psql -d $db_name -c "alter sequence $db_schema.\"$db_sequence\" owner to $db_role;"
     done
 
     local db_view=''
-    for db_view in `psql -d $db_name -qAt -c "SELECT table_name FROM information_schema.views where table_schema = '$db_schema';"` ; do  
-      psql -d $db_name -c "alter view $db_schema.\"$db_view\" owner to $db_role;" 
+    for db_view in `psql -d $db_name -qAt -c "SELECT table_name FROM information_schema.views where table_schema = '$db_schema';"` ; do
+      psql -d $db_name -c "alter view $db_schema.\"$db_view\" owner to $db_role;"
     done
   done
 }
@@ -106,9 +106,12 @@ _pg_database_schema_permissions() {
     for db_privilege in ${db_privileges//,/ }; do
       if [ $db_privilege == 'ALL' ] || [ $db_privilege == 'CREATE' ] || \
         [ $db_privilege == 'TEMPORARY' ] || [ $db_privilege == 'TEMP' ]; then
+        _log ">> GRANT $db_privilege ON DATABASE $db_name TO $db_role;"
         psql -c "GRANT $db_privilege ON DATABASE $db_name TO $db_role;"
       fi
     done
+    _log ">> GRANT CONNECT ON DATABASE $db_name TO $db_role;"
+    psql -c "GRANT CONNECT ON DATABASE $db_name TO $db_role;"
   fi
 
   # grant privileges on database schemas
@@ -129,7 +132,7 @@ _pg_database_schema_permissions() {
           psql -d $db_name -c "GRANT $db_object_privilege ON ALL TABLES IN SCHEMA $db_schema TO $db_role;"
           psql -d $db_name -c "ALTER DEFAULT PRIVILEGES IN SCHEMA $db_schema GRANT $db_object_privilege ON TABLES TO $db_role;"
         fi
-        
+
         if [ $db_object_privilege == 'ALL' ] || [ $db_object_privilege == 'USAGE' ] || \
           [ $db_object_privilege == 'SELECT' ] || [ $db_object_privilege == 'UPDATE' ]; then
           psql -d $db_name -c "GRANT $db_object_privilege ON ALL SEQUENCES IN SCHEMA $db_schema TO $db_role;"
@@ -155,25 +158,25 @@ _pg_database_schema_permissions() {
 # update database permissions for role
 _pg_database_role_permissions() {
   local db_name=${1}
-  
-  echo "== updating user access for database '$db_name'"
+
+  _log "== updating user access for database '$db_name'"
   if ! psql -lqtA | grep -q "^$db_name|"; then
-    echo "== WARNING: database '$db_name' does not exist"
+    _log "== WARNING: database '$db_name' does not exist"
     return 0;
   fi
-  
+
   local db_roles=`echo -n $POSTGRES_DB | jq -r .${db_name}.roles[]?.name`
-  
+
   local db_schemas=`psql -d $db_name -qtA -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name <> 'information_schema' AND schema_name NOT LIKE 'pg_%'"`
   local db_role=''
   for db_role in $db_roles; do
     if ! psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='${db_role}'" | grep -q 1; then
       continue
-    fi   
+    fi
 
     local db_role_config=`echo -n $POSTGRES_DB | jq -r ".${db_name}.roles[] | select(.name == \"${db_role}\")"`
 
-    # check if owner 
+    # check if owner
     if echo $db_role_config | jq -r .owner | grep -q 'true'; then
       _pg_database_owner "$db_name" "$db_role" "$db_schemas"
       continue
@@ -214,14 +217,14 @@ _pg_database_role_permissions() {
   done
 }
 
-echo "== set postgres user password =="
-if [ -z "$POSTGRES_PASSWORD" ]; then 
+_log "== set postgres user password =="
+if [ -z "$POSTGRES_PASSWORD" ]; then
     export POSTGRES_PASSWORD="postgres"
 fi
 
 psql --command "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
 
-echo "== create roles =="
+_log "== create roles =="
 if [ -n "$POSTGRES_ROLES" ]; then
   for db_role in `echo -n $POSTGRES_ROLES | jq -r '.[] | @base64'`; do
     db_role_name=`_jq_object "$db_role" '.name'`
@@ -235,7 +238,7 @@ if [ -n "$POSTGRES_ROLES" ]; then
   done
 fi
 
-echo "== create users =="
+_log "== create users =="
 if [ -n "$POSTGRES_USERS" ]; then
   for db_role in `echo -n $POSTGRES_USERS | jq -r '.[] | @base64'`; do
     db_role_name=`_jq_object "$db_role" '.name'`
@@ -259,15 +262,16 @@ if [ -n "$POSTGRES_USERS" ]; then
   done
 fi
 
-echo "== create databases && update database permissions =="
+_log "== create databases && update database permissions =="
 if [ -n "$POSTGRES_DB" ]; then
   for db_name in `echo -n $POSTGRES_DB | jq -r 'keys'[]`;do
-    
+
     # create database if not exist
     if ! psql -lqtA | grep -q "^$db_name|"; then
-      echo "== creating database '$db_name'"
+      _log "== creating database '$db_name'"
       psql --command "create database $db_name;"
       psql -d $db_name --command "REVOKE ALL ON SCHEMA public FROM public"
+      psql -d $db_name --command "REVOKE CONNECT on database $db_name FROM public;"
 
       _pg_database_init $db_name
     fi
