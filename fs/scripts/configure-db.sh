@@ -60,7 +60,7 @@ _pg_database_init() {
 # change database owner
 _pg_database_owner() {
   local db_name=${1}
-  local db_db_role=${2}
+  local db_role=${2}
   local db_schemas=${3}
 
   _log "== changing owner for database '$db_name' to '$db_role'"
@@ -94,7 +94,7 @@ _pg_database_owner() {
 # change permissions on database objects
 _pg_database_schema_permissions() {
   local db_name=${1}
-  local db_db_role=${2}
+  local db_role=${2}
   local db_privileges=${3}
   local db_schemas=${4}
   local db_object_type=${5}
@@ -110,9 +110,10 @@ _pg_database_schema_permissions() {
         psql -c "GRANT $db_privilege ON DATABASE $db_name TO $db_role;"
       fi
     done
-    _log ">> GRANT CONNECT ON DATABASE $db_name TO $db_role;"
-    psql -c "GRANT CONNECT ON DATABASE $db_name TO $db_role;"
   fi
+
+  _log ">> GRANT CONNECT ON DATABASE $db_name TO $db_role;"
+  psql -c "GRANT CONNECT ON DATABASE $db_name TO $db_role;"
 
   # grant privileges on database schemas
   local db_schema=''
