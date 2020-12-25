@@ -9,14 +9,14 @@ volumes:
 
 services:
   pg:
-    image: tinslice/postgres:12-ubuntu-18.04
+    image: tinslice/postgres:13-ubuntu-18.04
     container_name: postgres
     ports:
       - "5432:5432"
     shm_size: 256MB # increase this in case of 'ERROR: could not resize shared memory segment . . . : No space left on device'
     volumes:
       - pg-data:/var/lib/postgresql/data
-      - ./config/conf.d:/etc/postgresql/11/main/conf.d
+      - ./config/conf.d:/etc/postgresql/13/main/conf.d
       - ./config/scripts:/etc/postgresql/scripts
     restart: unless-stopped
     healthcheck:
