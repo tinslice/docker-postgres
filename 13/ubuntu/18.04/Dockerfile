@@ -45,4 +45,4 @@ USER postgres
 
 VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql/data"]
 
-CMD ["/bin/sh", "-c", "/scripts/prepare-env-and-run.sh"]
+CMD [ "/scripts/prepare-env-and-run.sh" ]

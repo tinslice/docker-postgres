@@ -3,7 +3,7 @@
 image_name = tinslice/postgres
 
 build:
-	docker build --pull \
+	docker build --network=host --pull \
 		-f 13/ubuntu/18.04/Dockerfile -t ${image_name}:13-ubuntu-18.04 .
 
 push:
