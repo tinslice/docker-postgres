@@ -14,7 +14,7 @@ if [ -n "$PGDATA" ]; then
   PG_DATA_PATH="$PGDATA"
 fi
 
-PG_SQL_SCRIPTS_PATH="/etc/postgresql/scripts"
+export PG_SQL_SCRIPTS_PATH="/etc/postgresql/scripts"
 
 rm -rf $PG_DATA_PATH/container_ready
 rm -rf $PG_DATA_PATH/postmaster.pid
